@@ -1,0 +1,20 @@
+#   TARGETHOST: the host to which the file will be copied
+#   TARGETDIR:  the target directory for the file on the TARGETHOST
+#   PUBBASE:    the URL base of the published files.
+# Think about it this way:
+#   scp foo ${TARGETHOST}:${TARGETDIR}
+#   wget ${PUBBASE}/foo
+#
+# In addition, you can define:
+#   HASHCMD:    the command to use to calculate hashes (default: md5sum)
+#   DELIM:      the delimiter to use to replace / (default: __)
+#   VERIFY:     set this to on to have files verified by default.
+#   OBSCURE:    set this to on to have file names obscured by default.
+#   FORCE:      set this to on to force publishing of empty files/directories,
+#               and to follow symlinks.
+# Target configure in your .ssh/config
+TARGETHOST="arael"
+# Repo pub on the target
+TARGETDIR="/var/www/pub/"
+# Url of pub base
+PUBBASE="http://sebian.yasaw.net/pub/"
