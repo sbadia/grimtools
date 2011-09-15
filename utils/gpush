@@ -1,0 +1,17 @@
+#!/bin/bash
+# Author:: Sebastien Badia (<seb@sebian.fr>)
+# Date:: jeudi 15 septembre 2011, 19:52:18 (UTC+0200)
+# Petit script pour pusher sur deux repo distant en
+# fonction de la branch actuelle.
+
+if [ -d .git ]; then
+  BRANCH=`git st |grep "On branch"| cut -d ' ' -f 4`
+  echo "--> On branch $BRANCH"
+  echo "--> Push branch $BRANCH on gitbian"
+  git push -u gitbian $BRANCH
+  echo "--> Push branch $BRANCH on origin (github)"
+  git push -u origin $BRANCH
+else
+  echo "Your are not in a git repo..."
+  exit 1
+fi

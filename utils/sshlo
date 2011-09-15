@@ -1,0 +1,19 @@
+#!/bin/bash
+# Author:: Sebastien Badia (<seb@sebian.fr>)
+# Date:: jeudi 15 septembre 2011, 19:55:18 (UTC+0200)
+# Petit script pour loader les clées ssh de son .ssh/
+
+/usr/bin/ssh-add -l
+/usr/bin/ssh-add -D
+declare -a cle
+cle=( `ls ~/.ssh/ |grep -v '\(pub\|know\|conf\)'` )
+cd ~/.ssh/
+pwd
+for i in ${cle[*]};
+	do echo "Cle "$i;
+	/usr/bin/ssh-add $i < /usr/bin/ssh-askpass
+done
+cd ~
+pwd
+/usr/bin/ssh-add -l
+echo 'naughty.notify({title = "Chargement clés ssh", text = "Terminé avec succès", timeout = 5})' | awesome-client

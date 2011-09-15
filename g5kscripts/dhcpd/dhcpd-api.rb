@@ -1,5 +1,5 @@
 #!/usr/bin/ruby
-# Author:: Sebastien Badia (<sebastien.badia@inria.fr>)
+# Author:: Sebastien Badia (<seb@sebian.fr>)
 # Date:: Fri Jul 01 10:47:49 +0200 2011
 # Little script for generate dhcpd.conf from yaml conf of api.
 require 'yaml'

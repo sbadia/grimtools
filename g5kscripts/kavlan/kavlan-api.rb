@@ -1,5 +1,5 @@
 #!/usr/bin/ruby
-# Author:: Sebastien Badia (<sebastien.badia@inria.fr>)
+# Author:: Sebastien Badia (<seb@sebian.fr>)
 # Date:: Fri Jul 01 14:03:40 +0200 2011
 # For generate kavlan config from api.
 require 'yaml'

@@ -1,6 +1,6 @@
 #!/usr/bin/ruby -w
 # listToconf - Convert list of mac to dhcp conf.
-# 2010 Sebastien Badia <sebastien.badia@loria.fr> <sebastien@badia.fr>
+# 2010 Sebastien Badia <seb@sebian.fr>
 # Grid5000 - Nancy
 #
 # (mac-fich) head mac-graphene.txt

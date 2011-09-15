@@ -1,0 +1,43 @@
+#!/bin/bash
+#!/bin/bash
+# Author:: Sebastien Badia (<seb@sebian.fr>)
+# Date:: jeudi 15 septembre 2011, 19:59:18 (UTC+0200)
+# Petit script pour configurer le dual screen en
+# fonction de la config.
+
+MODE=$1
+VERBOSE="1"
+
+usage()
+{
+  echo -e "Usage:\nstart [2h|2v|laptop]\n\t-2h: Two display with hdmi output\n\t-2v: Two display with vga output\n\t-laptop: Laptop screen"
+}
+
+if [ -f ~/.config/awesome/rc.lua ]; then
+  if [ $MODE == "2h" ]; then
+    if [ $VERBOSE == 1 ]; then
+      echo "--> HDMI Screen + Laptop"
+    fi
+    sed -e 's/^local\ conf\ =\ 1/local conf = 2/' -i ~/.config/awesome/rc.lua
+    xrandr --output HDMI1 --mode 1680x1050
+    xrandr --output HDMI1 --auto --left-of eDP1
+  elif [ $MODE == "2v" ]; then
+    if [ $VERBOSE == 1 ]; then
+      echo "--> VGA Screen + Laptop"
+    fi
+    sed -e 's/^local\ conf\ =\ 1/local conf = 2/' -i ~/.config/awesome/rc.lua
+    xrandr --output VGA1 --mode 1680x1050
+    xrandr --output VGA1 --auto --left-of eDP1
+  elif [ $MODE == "laptop" ]; then
+    if [ $VERBOSE == 1 ]; then
+      echo "--> Laptop screen"
+    fi
+    sed -e 's/^local\ conf\ =\ 2/local conf = 1/' -i ~/.config/awesome/rc.lua
+    #xrandr --output DP1 --mode 1366x768
+  else
+    usage
+  fi
+else
+  echo "No awesome config..."
+  exit 1
+fi
