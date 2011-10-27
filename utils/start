@@ -6,11 +6,12 @@
 # fonction de la config.
 
 MODE=$1
+TYPE=$2
 VERBOSE="1"
 
 usage()
 {
-  echo -e "Usage:\nstart [2h|2v|laptop]\n\t-2h: Two display with hdmi output\n\t-2v: Two display with vga output\n\t-laptop: Laptop screen"
+  echo -e "Usage:\nstart [2h|2v|laptop [h|v]]\n\t-2h: Two display with hdmi output\n\t-2v: Two display with vga output\n\t-laptop h: Laptop screen disable hdmi\n\t-laptop v: Laptop screen disable vga"
 }
 
 if [ -f ~/.config/awesome/rc.lua ]; then
@@ -33,7 +34,18 @@ if [ -f ~/.config/awesome/rc.lua ]; then
       echo "--> Laptop screen"
     fi
     sed -e 's/^local\ conf\ =\ 2/local conf = 1/' -i ~/.config/awesome/rc.lua
-    #xrandr --output DP1 --mode 1366x768
+    xrandr --output eDP1 --mode 1366x768
+    if [ $TYPE == "h" ]; then
+      if [ $VERBOSE == 1 ]; then
+        echo "--> Disable HDMI screen"
+      fi
+      xrandr --output HDMI1 --off
+    elif [ $TYPE == "v" ]; then
+      if [ $VERBOSE == 1 ]; then
+        echo "--> Disable VGA screen"
+      fi
+      xrandr --output VGA1 --off
+    fi
   else
     usage
   fi
