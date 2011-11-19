@@ -6,14 +6,15 @@
 /usr/bin/ssh-add -l
 /usr/bin/ssh-add -D
 declare -a cle
-cle=( `ls ~/.ssh/ |grep -v '\(pub\|know\|conf\)'` )
+cle=( `ls ~/.ssh/ |grep -v '\(pub\|know\|conf\|puppetplay\)'` )
 cd ~/.ssh/
 pwd
 for i in ${cle[*]};
-	do echo "Cle "$i;
-	/usr/bin/ssh-add $i < /usr/bin/ssh-askpass
+  do echo "Cle "$i;
+    /usr/bin/ssh-add $i < /usr/bin/ssh-askpass
+    echo "naughty.notify({title = 'Sshlo: Load ssh keys', text = '$i Loaded', timeout = 5})" | /usr/bin/awesome-client
 done
 cd ~
 pwd
 /usr/bin/ssh-add -l
-echo 'naughty.notify({title = "Chargement clés ssh", text = "Terminé avec succès", timeout = 5})' | awesome-client
+echo "naughty.notify({title = 'Sshlo: Done', text = 'All user key loaded', timeout = 8})" | /usr/bin/awesome-client
