@@ -1,0 +1,10 @@
+#!/usr/bin/python
+# EASY-INSTALL-ENTRY-SCRIPT: 'goobook==1.4alpha4','console_scripts','goobook'
+__requires__ = 'goobook==1.4alpha4'
+import sys
+from pkg_resources import load_entry_point
+
+if __name__ == '__main__':
+    sys.exit(
+        load_entry_point('goobook==1.4alpha4', 'console_scripts', 'goobook')()
+    )

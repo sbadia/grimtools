@@ -1,0 +1,436 @@
+#!/bin/sh
+#
+# pub -- publish a file or (tarball of a) directory
+#
+# Depends: liburi-perl
+#
+# The command takes a set of files or directories. For each directory, it will
+# create a tarball, then treat this tarball as file and proceed as for files
+# passed on the command line. If possible, the tarball is generated in the
+# parent directory of the directory to publish, but $TMPDIR is used if that
+# fails.
+#
+# For more information, see
+#   http://madduck.net/blog/2007.01.12:featured-tool--pub/
+#
+# It is possible to specify a target filename for each file to be uploaded,
+# thus overriding the automatically generated one. To do so, append == and the
+# target filename to the argument.
+#
+# pub will not publish empty files or directories, and it will not follow
+# symlinks. This can be overridden with the --force or -f option.
+#
+# Specifying --bzip2 (-j) or --gzip (-z) will cause pub to compress the file
+# during publication. --zip (-i) and --7zip (-7) do as you would expect, for
+# the non-Unix-y formats.
+#
+# With the --obscure or -o option, the script publishes the file under
+# a unique name that cannot be deduced from (but does include) the filename.
+#
+# Passing --verify or -v causes the script to download the published file and
+# verify its contents by way of a hash sum, or that it has been deleted.
+#
+# If the --delete or -d argument is given, files will be deleted from the
+# server. This is done by calculating the file name that would be used for an
+# upload and trying to remove that. It is thus important to specify the same
+# arguments as used when publishing the file.
+#
+# Mode of operation:
+#
+# First, pub tries to change the mode of the file to upload to 644. If it
+# cannot do that, it connects to the target host via SSH and chmods the file
+# there. The file mode is restored after the transfer.
+#
+# Next, pub copies the file to the target directory with rsync or scp. The
+# target filename will be the file's local path with slashes replaced by
+# the value of $DELIM. The path to the users home directory is trimmed,
+# resulting in filenames representing absolute paths for files outside $HOME,
+# and relative paths for files underneath $HOME. Alternatively, the user may
+# specify the target filename by appending == and the desired filename to each
+# argument.
+#
+# The final location of the file is echoed to the terminal along with its size
+# and hash sum. The files are not guaranteed to be available before pub
+# finishes and returns to the shell.
+#
+# Specifying --url-only (-u) inhibits printing of checksum and size.
+#
+# Configuration:
+#
+# The script expects a file ~/.pubrc (shell script snippet) to define three
+# variables:
+#   TARGETHOST: the host to which the file will be copied
+#   TARGETDIR:  the target directory for the file on the TARGETHOST
+#   PUBBASE:    the URL base of the published files.
+# Think about it this way:
+#   scp foo ${TARGETHOST}:${TARGETDIR}
+#   wget ${PUBBASE}/foo
+#
+# In addition, you can define:
+#   HASHCMD:    the command to use to calculate hashes (default: md5sum)
+#   DELIM:      the delimiter to use to replace / (default: __)
+#   VERIFY:     set this to on to have files verified by default.
+#   OBSCURE:    set this to on to have file names obscured by default.
+#   FORCE:      set this to on to force publishing of empty files/directories,
+#               and to follow symlinks.
+#
+# The script also reads the contents of ~/.pub-uuid to generate unique file
+# names with the --obscure option. If such a file does not exist, it is
+# created with random contents.
+#
+# Copyright © martin f. krafft <madduck@madduck.net>
+# Released under the terms of the Artistic Licence 2.0
+#
+# Thanks to Jan Larres for his input on handling of files with spaces in their
+# names.
+#
+# Revision: $Id$
+#
+set -eu
+
+DELIM='__'
+HASHCMD=md5sum
+CONFFILE=$HOME/.pubrc
+if [ ! -r $CONFFILE ]; then
+  echo "E: $CONFFILE cannot be read." >&2
+  exit 1
+fi
+
+. $CONFFILE
+
+if [ -z "$PUBBASE" ]; then
+  echo "E: PUBBASE is not defined in $CONFFILE." >&2
+  exit 2
+fi
+
+if [ -z "$TARGETHOST" ]; then
+  echo "E: TARGETHOST is not defined in $CONFFILE." >&2
+  exit 3
+fi
+
+if [ -z "$TARGETDIR" ]; then
+  echo "E: TARGETDIR is not defined in $CONFFILE." >&2
+  exit 4
+fi
+
+UUIDFILE="$HOME/.pub-uuid"
+if [ -r $UUIDFILE ]; then
+  UUID="$(<$UUIDFILE)"
+else
+  UUID="$(dd if=/dev/urandom bs=64k count=1 2>/dev/null | $HASHCMD)"
+  UUID="${UUID%% *}"
+  echo "$UUID" >$UUIDFILE
+fi
+
+ME="${0##*/}"
+
+trap_commands=
+add_trap_command()
+{
+  trap_commands="$@${trap_commands:+; $trap_commands}"
+  trap "$trap_commands" 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+}
+
+tmpfile()
+{
+  local tmpdir; tmpdir="${1:-${TMP:-${TMPDIR:-${TEMPDIR:-/tmp}}}}"
+  local prefix; prefix="${2:-${ME}.}"
+  tmpfile="$(tempfile -p "$prefix" -d "$tmpdir" 2>/dev/null || tempfile -p "$prefix")"
+  add_trap_command "rm -f $tmpfile"
+}
+
+fixperms_ssh()
+{
+  ssh "${1%%:*}" "chmod 0644 '${1#*:}'"
+}
+
+copy()
+{
+  tmpfile "${1%/*}"
+  chmod --reference "$1" "$tmpfile"
+  add_trap_command "chmod --reference '$tmpfile' '$1' 2>/dev/null || :; rm -f '$tmpfile'"
+
+  local perm_changed; perm_changed=0
+  # we're publishing anyway, so there's no harm in a temporary 0644
+  if chmod 0644 "$1" 2>/dev/null; then
+    perm_changed=1
+  fi
+
+  (
+    if command -v rsync >/dev/null; then
+      rsync -p --copy-links "$1" "$2"
+      [ $perm_changed -eq 0 ] && fixperms_ssh "$2"
+    elif command -v scp >/dev/null; then
+      scp -q "$1" "$2"
+      [ $perm_changed -eq 0 ] && fixperms_ssh "$2"
+    else
+      echo E: no remote copy command found. >&2
+    fi
+    [ $verify -eq 1 ] && verify_file
+  )&
+}
+
+delete()
+{
+  local host; host="${1%%:*}"
+  local file; file="${1#*:}"
+  ssh "$host" rm "$file"
+}
+
+escape_url()
+{
+  perl -e "use URI::Escape; print uri_escape('$@') . \"\n\""
+}
+
+obscure_filename()
+{
+  local uuid; uuid="$(echo $UUID $target | $HASHCMD)"; uuid="${uuid%% *}"
+  local basename; basename="${rtarget##*${DELIM}}"
+  case "$basename" in
+    *.*)
+      local parentdir; parentdir="${rtarget%${DELIM}*}"
+      [ "$parentdir" != "$basename" ] && prefix="${parentdir}${DELIM}"
+      rtarget="${parentdir}${DELIM}${basename%%.*}.${uuid}.${basename#*.}";;
+    *)
+      rtarget="${rtarget}${DELIM}${uuid}";;
+  esac
+}
+
+compress_file() {
+  case "$file" in
+    *.gz|*.bz2|*.zip|*.7z)
+      echo "W: skip compressing of already-compressed file: $file" >&2
+      return 1
+      ;;
+  esac
+
+  source="${file%/}"
+  tmpfile; file="$tmpfile"
+
+  case "$1" in
+    gz)
+      gzip -9 < "$source" > "$file"
+      case "$target" in
+        *.gz) :;;
+        *) target="${target}.gz"
+      esac
+      ;;
+    bz2)
+      bzip2 -9 < "$source" > "$file"
+      case "$target" in
+        *.bz2) :;;
+        *) target="${target}.bz2"
+      esac
+      ;;
+    zip)
+      (cd "${source%/*}"; zip -9qr - "${source##*/}") > "$file"
+      case "$target" in
+        *.zip) :;;
+        *) target="${target}.zip"
+      esac
+      ;;
+    7z)
+      echo "E: 7z support not yet implemented." >&2
+      exit 1
+      ;;
+  esac
+}
+
+verify_file()
+{
+  local hash_new;
+  hash_new="$(wget --no-cache -O- -q "$url" | $HASHCMD)"
+  if [ ${hash_new%% *} = ${hash%% *} ]; then
+    echo "I: successfully uploaded: $origfile" >&2
+    return 0
+  else
+    echo "E: not uploaded: $origfile" >&2
+    return 1
+  fi
+}
+
+verify_file_deleted()
+{
+  if wget -O/dev/null "$url" 2>&1 | grep -q 'ERROR 4'; then
+    echo "I: successfully deleted: $origfile" >&2
+    return 0
+  else
+    echo "E: not deleted: $origfile" >&2
+    return 1
+  fi
+}
+
+procfile()
+{
+  local file; file="${1:?No filename given.}"
+  local origfile; origfile="$file"
+  local target; target="${2:-$file}"
+  
+  case "$bzip2$gzip$zip7$zip" in
+    1000) compress_file bz2 || :;;
+    0100) compress_file gz || :;;
+    0010) compress_file 7z || :;;
+    0001) compress_file zip || :;;
+  esac
+
+  local rtarget; rtarget="$(echo "$target" | sed -e s,/,${DELIM},g)"
+
+  [ $obscure -eq 1 ] && obscure_filename
+
+  local url; url="${PUBBASE}$(escape_url "$rtarget")"
+  if [ $delete -eq 1 ]; then
+    delete ${TARGETHOST}:"'${TARGETDIR}/$rtarget'" || :
+
+    [ $verify -eq 1 ] && verify_file_deleted
+  else
+    local size; size="$(wc -c "$file")"
+    local hash; hash="$($HASHCMD "$file")"
+    echo -n "$url"
+    [ $urlonly = 1 ] || echo -n " size:${size%% *} hash:${hash%% *}"
+    echo
+    copy "$file" ${TARGETHOST}:"'${TARGETDIR}/$rtarget'"
+  fi
+}
+
+procdir()
+{
+  local parent; parent="${1%/*}"
+  local basename; basename="${1##*/}"
+
+  local target;
+  if [ -z "$2" ]; then
+    target="$parent/${basename}.tar"
+  else
+    target="$2"
+  fi
+
+  local tmptar; tmpfile; tmptar="$tmpfile"
+
+  [ $delete -eq 0 ] && \
+    tar -cf "$tmptar" --exclude=.svn --exclude=CVS \
+      -C "$parent" "$basename" || :
+
+  procfile "$tmptar" "$target"
+}
+
+is_true()
+{
+  case "${1:-}" in
+    [Yy]es|[Yy]|1|[Tt]rue|[Tt]|[Oo]n) return 0;;
+    *) return 1;
+  esac
+}
+
+CWD="$(pwd)"
+delete=0
+obscure=0
+force=0
+bzip2=0
+gzip=0
+zip=0
+zip7=0
+verify=0
+urlonly=0
+
+is_true "${VERIFY:-}" && verify=1
+is_true "${OBSCURE:-}" && obscure=1
+is_true "${FORCE:-}" && force=1
+
+files=
+
+LONGOPTS="delete,obscure,force,bzip2,gzip,zip,7zip,verify,url-only"
+SHORTOPTS="dofjzi7vu"
+eval set -- $(getopt -o $SHORTOPTS -l $LONGOPTS -n $ME -- "$@")
+for arg in "$@"; do
+  case "$arg" in
+    --delete|-d) delete=1; continue;;
+    --obscure|-o) obscure=1; continue;;
+    --force|-f) force=1; continue;;
+    --bzip2|-j) bzip2=1; continue;;
+    --gzip|-z) gzip=1; continue;;
+    --zip|-i) zip=1; continue;;
+    --7zip|-7) zip7=1; continue;;
+    --verify|-v) verify=1; continue;;
+    --url-only|-u) urlonly=1; continue;;
+    --) continue;;
+    /*) :;;
+     *) arg="${CWD}/$arg";;
+  esac
+  arg="${arg#$HOME/}"
+
+  files="${files:+$files
+}$arg"
+done
+
+case "$gzip$bzip2$zip$zip7" in
+  1100|0110|0011|1010|0101|1001|1110|1101|1011|0111|1111)
+    echo "W: more than one compression algorithm selected, choosing zip..." >&2
+    bzip2=0; gzip=0; zip7=0
+    ;;
+esac
+
+if [ $zip7 -eq 1 ] && ! command -v 7zr >/dev/null 2>&1; then
+  echo "W: 7zr not found, falling back to zip..." >&2
+  zip7=0
+  zip=1
+fi
+
+if [ $zip -eq 1 ] && ! command -v zip >/dev/null 2>&1; then
+  echo "W: zip not found, falling back to bzip2..." >&2
+  zip=0
+  bzip2=1
+fi
+
+if [ $bzip2 -eq 1 ] && ! command -v bzip2 >/dev/null 2>&1; then
+  echo "W: bzip2 not found, falling back to gzip..." >&2
+  bzip2=0
+  gzip=1
+fi
+
+cd
+IFS_old="$IFS"
+IFS='
+'
+for file in $files; do
+  IFS="$IFS_old"
+
+  case "$file" in
+    *==*)
+      target="${file##*==}"
+      file="${file%==*}"
+      ;;
+      *) target=$(basename $file);;
+  esac
+
+  if [ -d "$file" ]; then
+    [ ! -r "$file" ] && echo "W: skipping unreadable directory: $file" >&2 && continue
+    [ $force -eq 0 ] && [ -z "$(ls "$file")" ] && \
+      echo "W: skipping empty directory: $file" >&2 && continue
+
+    case "$zip$zip7" in
+      *1*) procfile "${file%/}" "${target:-}";;
+      *) procdir "${file%/}" "${target:-}";;
+    esac
+    continue
+  fi
+
+  [ ! -e "$file" ] && echo "W: skipping nonexistent file: $file" >&2 && continue
+  [ ! -r "$file" ] && echo "W: skipping unreadable file: $file" >&2 && continue
+  [ $force -eq 0 ] && [ ! -s "$file" ] && \
+    echo "W: skipping empty file: $file" >&2 && continue
+  [ $force -eq 0 ] && [ -L "$file" ] && \
+    echo "W: skipping symlink: $file" >&2 && continue
+
+  if [ -f "$file" ]; then
+    procfile "$file" "${target:-}"
+    continue
+  fi
+
+  echo "W: skipping unknown inode type: $file" >&2
+
+done
+IFS="$IFS_old"
+
+wait
+
+exit 0

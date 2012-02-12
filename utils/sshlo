@@ -3,15 +3,63 @@
 # Date:: jeudi 15 septembre 2011, 19:55:18 (UTC+0200)
 # Petit script pour loader les clées ssh de son .ssh/
 
+usage() {
+cat <<EOF
+Usage: sshlo [OPTION]
+Chargeur de clées ssh.
+
+    -e (exclude files)        Fichiers à exclure.
+    -t (timeout agent)        Défini la duré de vie de l'agent.
+    -m [console|gnome|x11]    Mode du sshaskpass.
+    -h (help)                 Affiche cette aide.
+EOF
+exit 1
+}
+
+while [ "$1" ]
+do
+  case $1 in
+    "-e")   export EXCLUDE=$2
+            shift
+            ;;
+    "-t")   export TIME=$2
+            shift
+            ;;
+    "-m")   export MODE=$2
+            shift
+            ;;
+    "-h")   usage
+            ;;
+  esac
+  shift
+done
+
+if [ -z "$EXCLUDE" ]
+then
+  EXCLUDE='\(pub\|know\|conf\|puppetplay\|fosdem\)'
+fi
+if [ -z "$TIME" ]
+then
+  TTL=""
+else
+  TTL="-t $TIME"
+fi
+if [ -z "$MODE" ]
+then
+  MODE=""
+else
+  MODE="< /usr/bin/ssh-askpass"
+fi
+
 /usr/bin/ssh-add -l
 /usr/bin/ssh-add -D
 declare -a cle
-cle=( `ls ~/.ssh/ |grep -v '\(pub\|know\|conf\|puppetplay\)'` )
+cle=( `ls ~/.ssh/ |grep -v $EXCLUDE` )
 cd ~/.ssh/
 pwd
 for i in ${cle[*]};
   do echo "Cle "$i;
-    /usr/bin/ssh-add $i < /usr/bin/ssh-askpass
+    /usr/bin/ssh-add $i $TTL $UTIL
     echo "naughty.notify({title = 'Sshlo: Load ssh keys', text = '$i Loaded', timeout = 5})" | /usr/bin/awesome-client
 done
 cd ~
