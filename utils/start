@@ -8,7 +8,6 @@ MODE=$1
 TYPE=$2
 VERBOSE="1"
 
-#echo -e "Usage:\nstart -[2h|2v|l[h|v]]\n\t-2h: Two display with hdmi output\n\t-2v: Two display with vga output\n\t-l: Laptop screen\n\t-lh: Laptop screen disable hdmi\n\t-lv: Laptop screen disable vga"
 usage()
 {
 cat <<-EOF
