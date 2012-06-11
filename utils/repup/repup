@@ -1,0 +1,47 @@
+#!/usr/bin/ruby
+# Author:: Sebastien Badia (<seb@sebian.fr>)
+# Date:: Thu Mar 22 01:30:13 +0100 2012
+#
+require '~/bin/peach'
+require 'thread'
+require 'yaml'
+
+repos = ["/home/#{ENV['USER']}/dev"]
+time = Time::now
+count = 0
+
+if ARGV[0] == 'all':
+  repos = YAML.load_file(File.join(File.dirname(__FILE__),'repos.yml'))
+elsif ARGV[0] == nil
+else
+  repos = ["#{ARGV[0]}"]
+end
+
+puts "\e[34m[B]\e[0m Start (#{time})"
+repos.each do |dev|
+  repo = Dir.entries(dev)
+  repo = repo - ['..','.']
+  mutex = Mutex::new
+  mutex.synchronize do
+    repo.to_a.peach(repo.length) do |g|
+      Dir.chdir(dev)
+      if File.directory?(g):
+      Dir.chdir(g)
+        if File.exist?('.svn'):
+  	  puts "\e[31m[S]\e[0m #{g} - " + %x{svn update}
+          count += 1
+        elsif File.exist?('.git'):
+          puts "\e[32m[G]\e[0m #{g} - " + %x{git pull}
+          count += 1
+        elsif File.exist?(".hg"):
+          puts "\e[33m[M]\e[0m #{g} - " + %x{hg pull |grep pull}
+          count += 1
+        else
+          Dir.chdir(dev)
+        end
+      end
+    Dir.chdir(dev)
+    end
+  end
+end
+puts "\e[34m[E]\e[0m Finish (#{time})(#{(Time::now - time)}sec)(#{count} repos)"
