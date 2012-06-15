@@ -10,9 +10,9 @@ repos = ["/home/#{ENV['USER']}/dev"]
 time = Time::now
 count = 0
 
-if ARGV[0] == 'all':
+if ARGV[0] == 'all' then
   repos = YAML.load_file(File.join(File.dirname(__FILE__),'repos.yml'))
-elsif ARGV[0] == nil
+elsif ARGV[0] == nil then
 else
   repos = ["#{ARGV[0]}"]
 end
@@ -25,15 +25,15 @@ repos.each do |dev|
   mutex.synchronize do
     repo.to_a.peach(repo.length) do |g|
       Dir.chdir(dev)
-      if File.directory?(g):
+      if File.directory?(g) then
       Dir.chdir(g)
-        if File.exist?('.svn'):
+        if File.exist?('.svn') then
   	  puts "\e[31m[S]\e[0m #{g} - " + %x{svn update}
           count += 1
-        elsif File.exist?('.git'):
+        elsif File.exist?('.git') then
           puts "\e[32m[G]\e[0m #{g} - " + %x{git pull}
           count += 1
-        elsif File.exist?(".hg"):
+        elsif File.exist?(".hg") then
           puts "\e[33m[M]\e[0m #{g} - " + %x{hg pull |grep pull}
           count += 1
         else
