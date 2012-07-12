@@ -2,19 +2,19 @@
 # Author:: Sebastien Badia (<seb@sebian.fr>)
 # Date:: Thu Mar 22 01:30:13 +0100 2012
 #
-require '~/bin/peach'
+require '~/bin/peach' # http://peach.rubyforge.org/
 require 'thread'
 require 'yaml'
 
-repos = ["/home/#{ENV['USER']}/dev"]
 time = Time::now
 count = 0
 
-if ARGV[0] == 'all' then
+if ARGV[0] != nil
+  repos = YAML.load_file(File.join(File.dirname(__FILE__),ARGV[0]))
+elsif ARGV[0] == nil
   repos = YAML.load_file(File.join(File.dirname(__FILE__),'repos.yml'))
-elsif ARGV[0] == nil then
 else
-  repos = ["#{ARGV[0]}"]
+  repos = ["/home/#{ENV['USER']}/dev"]
 end
 
 puts "\e[34m[B]\e[0m Start (#{time})"
@@ -25,15 +25,15 @@ repos.each do |dev|
   mutex.synchronize do
     repo.to_a.peach(repo.length) do |g|
       Dir.chdir(dev)
-      if File.directory?(g) then
+      if File.directory?(g)
       Dir.chdir(g)
-        if File.exist?('.svn') then
+        if File.exist?('.svn')
   	  puts "\e[31m[S]\e[0m #{g} - " + %x{svn update}
           count += 1
-        elsif File.exist?('.git') then
+        elsif File.exist?('.git')
           puts "\e[32m[G]\e[0m #{g} - " + %x{git pull}
           count += 1
-        elsif File.exist?(".hg") then
+        elsif File.exist?(".hg")
           puts "\e[33m[M]\e[0m #{g} - " + %x{hg pull |grep pull}
           count += 1
         else
