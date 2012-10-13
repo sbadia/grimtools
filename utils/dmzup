@@ -1,7 +1,0 @@
-#!/bin/sh
-echo "sudo apt-get update && sudo apt-get dist-upgrade && sudo apt-get clean"
-for i in lvs.sophia access-south lvs.lille access-north syslog-dmz bugzilla jiminy.lille mysql-dmz backup-dmz jabber-global.lille wiki
-do
-  echo "--> $i"
-  ssh $i.glob
-done

@@ -3,13 +3,10 @@
 # Date:: jeudi 15 septembre 2011, 19:59:18 (UTC+0200)
 # Petit script pour configurer le dual screen en
 # fonction de la config.
-
 MODE=$1
-TYPE=$2
 VERBOSE="1"
 
-usage()
-{
+usage() {
 cat <<-EOF
 Usage:
 start [OPTION]
@@ -20,27 +17,32 @@ start [OPTION]
   -l: Laptop screen
   -h: This help
 
-https://github.com/sbadia/utils-gh/blob/master/utils/start
+https://github.com/sbadia/grimtools
 EOF
 }
 
-laptop()
-{
-  sed -e 's/^local\ conf\ =\ 2/local conf = 1/' -i ~/.config/awesome/rc.lua
-  echo "--> Laptop screen"
+laptop_x() {
   xrandr --output eDP1 --mode 1366x768 --primary
 }
 
-xbattbar() {
-  reload "xbattbar -c -t"
-  reload "volumeicon"
-  [[ -x /usr/bin/nitrogen ]] && /usr/bin/nitrogen --restore
+xrand() {
+  local display="$1"
+  xrandr --output $display --noprimary --mode 1680x1050
+  xrandr --output $display --auto --left-of eDP1
 }
 
-reload() {
+xbattbar() {
+  rel "xbattbar -c -t 1"
+  #rel "volumeicon"
+  #rel "xfce4-clipman"
+  [[ -x /usr/bin/nitrogen ]] && sleep 2;/usr/bin/nitrogen --restore
+  exit 0
+}
+
+rel() {
   local name="$1"
   [[ -x /usr/bin/$name ]] && /usr/bin/killall -HUP $name -q
-  [[ -x /usr/bin/$name ]] && /usr/bin/$name 2 > /dev/null 2>&1 &
+  [[ -x /usr/bin/$name ]] && /usr/bin/$name 2> /dev/null 2>&1 &
 }
 
 if [ -f ~/.config/awesome/rc.lua ]; then
@@ -49,33 +51,36 @@ if [ -f ~/.config/awesome/rc.lua ]; then
       echo "--> HDMI Screen + Laptop"
     fi
     sed -e 's/^local\ conf\ =\ 1/local conf = 2/' -i ~/.config/awesome/rc.lua
-    xrandr --output HDMI1 --noprimary --mode 1680x1050
-    xrandr --output HDMI1 --auto --left-of eDP1
+    laptop_x
+    xrand "HDMI1"
     xbattbar
   elif [ "$MODE" == "2v" ]; then
     if [ "$VERBOSE" == "1" ]; then
       echo "--> VGA Screen + Laptop"
     fi
     sed -e 's/^local\ conf\ =\ 1/local conf = 2/' -i ~/.config/awesome/rc.lua
-    xrandr --output VGA1 --noprimary --mode 1680x1050
-    xrandr --output VGA1 --auto --left-of eDP1
+    laptop_x
+    xrand "VGA1"
     xbattbar
   elif [ "$MODE" == "lh" ]; then
       if [ "$VERBOSE" == "1" ]; then
         echo "--> Disable HDMI screen"
       fi
       xrandr --output HDMI1 --off
-      laptop
+      sed -e 's/^local\ conf\ =\ 2/local conf = 1/' -i ~/.config/awesome/rc.lua
+      laptop_x
       xbattbar
   elif [ "$MODE" == "lv" ]; then
       if [ "$VERBOSE" == "1" ]; then
         echo "--> Disable VGA screen"
       fi
       xrandr --output VGA1 --off
-      laptop
+      sed -e 's/^local\ conf\ =\ 2/local conf = 1/' -i ~/.config/awesome/rc.lua
+      laptop_x
       xbattbar
   elif [ "$MODE" == "l" ]; then
-      laptop
+      sed -e 's/^local\ conf\ =\ 2/local conf = 1/' -i ~/.config/awesome/rc.lua
+      laptop_x
       xbattbar
   else
     usage

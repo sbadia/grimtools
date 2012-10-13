@@ -1,0 +1,47 @@
+#!/bin/bash
+# Author:: Sebastien Badia (<seb@sebian.fr>)
+# Date:: 2012-10-13 15:24:39 +0200
+
+usage() {
+cat <<EOF
+Usage: cpu [OPTION]
+Binding sur cpu-freq.
+
+    -s (set)    Gouverneurs: powersave, conservative, userspace, ondemand, performance.
+    -i (info)   Etat actuel.
+    -h (help)   Affiche cette aide.
+EOF
+exit 1
+}
+
+set() {
+  local gouv="$1"
+  if [ -z "$gouv" ]
+  then
+    echo 'Values are: powersave, conservative, userspace, ondemand, performance.'
+    exit 1
+  fi
+  /usr/bin/sudo /usr/bin/cpufreq-set -r -g $gouv
+  echo "naughty.notify({title = 'Cpufreq-set: $gouv.', text = '`acpi -b |head -1`', timeout = 8})" | /usr/bin/awesome-client
+  exit 0
+}
+
+cinfo() {
+  info=`/usr/bin/cpufreq-info |grep 'Le régulateur'| uniq | cut -d \" -f 2`
+  echo "naughty.notify({title = 'Cpufreq-info: $info.', text = '`acpi -b |head -1`', timeout = 8})" | /usr/bin/awesome-client
+  echo $info
+}
+
+if [ "$#" -lt "1" ];then usage;fi
+while [ "$1" ]
+do
+  case $1 in
+    "-s")   set $2
+            ;;
+    "-i")   cinfo
+            ;;
+    "-h")   usage
+            ;;
+  esac
+  shift
+done
