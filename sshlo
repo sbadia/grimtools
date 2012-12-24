@@ -60,9 +60,9 @@ pwd
 for i in ${cle[*]};
   do echo "Cle "$i;
     /usr/bin/ssh-add $i $TTL $UTIL
-    echo "naughty.notify({title = 'Sshlo: Load ssh keys', text = '$i Loaded', timeout = 5})" | /usr/bin/awesome-client
+    /usr/bin/notify-send -u normal 'Sshlo: Ssh key loader' "$i loaded"
 done
 cd ~
 pwd
 /usr/bin/ssh-add -l
-echo "naughty.notify({title = 'Sshlo: Done', text = 'All user key loaded', timeout = 8})" | /usr/bin/awesome-client
+/usr/bin/notify-send -u normal 'Sshlo: Ssh key loader' "Done all keys loaded"

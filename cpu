@@ -22,13 +22,13 @@ set() {
     exit 1
   fi
   /usr/bin/sudo /usr/bin/cpufreq-set -r -g $gouv
-  echo "naughty.notify({title = 'Cpufreq-set: $gouv.', text = '`acpi -b |head -1`', timeout = 8})" | /usr/bin/awesome-client
+  /usr/bin/notify-send -u normal "Cpufreq-set: $gouv" "`acpi -b|head -1`"
   exit 0
 }
 
 cinfo() {
   info=`/usr/bin/cpufreq-info |grep 'Le régulateur'| uniq | cut -d \" -f 2`
-  echo "naughty.notify({title = 'Cpufreq-info: $info.', text = '`acpi -b |head -1`', timeout = 8})" | /usr/bin/awesome-client
+  /usr/bin/notify-send -u normal "Cpufreq-info: $info" "`acpi -b|head -1`"
   echo $info
 }
 
