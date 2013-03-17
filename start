@@ -17,7 +17,7 @@ start [OPTION]
   -l: Laptop screen
   -h: This help
 
-https://github.com/sbadia/grimtools
+https://github.com/sbadia/grimtools/blob/master/start
 EOF
 }
 
@@ -32,7 +32,7 @@ xrand() {
 }
 
 xbattbar() {
-  rel "xbattbar -c -t 1"
+  #rel "xbattbar" "-a -c -t 2 left"
   #rel "volumeicon"
   #rel "xfce4-clipman"
   [[ -x /usr/bin/nitrogen ]] && sleep 2;/usr/bin/nitrogen --restore
@@ -41,8 +41,9 @@ xbattbar() {
 
 rel() {
   local name="$1"
+  local opts="$2"
   [[ -x /usr/bin/$name ]] && /usr/bin/killall -HUP $name -q
-  [[ -x /usr/bin/$name ]] && /usr/bin/$name 2> /dev/null 2>&1 &
+  [[ -x /usr/bin/$name ]] && /usr/bin/$name $opts 2> /dev/null 2>&1 &
 }
 
 if [ -f ~/.config/awesome/rc.lua ]; then
@@ -50,7 +51,7 @@ if [ -f ~/.config/awesome/rc.lua ]; then
     if [ "$VERBOSE" == "1" ]; then
       echo "--> HDMI Screen + Laptop"
     fi
-    sed -e 's/^local\ conf\ =\ 1/local conf = 2/' -i ~/.config/awesome/rc.lua
+    #sed -e 's/^local\ conf\ =\ 1/local conf = 2/' -i ~/.config/awesome/rc.lua
     laptop_x
     xrand "HDMI1"
     xbattbar
@@ -58,7 +59,7 @@ if [ -f ~/.config/awesome/rc.lua ]; then
     if [ "$VERBOSE" == "1" ]; then
       echo "--> VGA Screen + Laptop"
     fi
-    sed -e 's/^local\ conf\ =\ 1/local conf = 2/' -i ~/.config/awesome/rc.lua
+    #sed -e 's/^local\ conf\ =\ 1/local conf = 2/' -i ~/.config/awesome/rc.lua
     laptop_x
     xrand "VGA1"
     xbattbar
@@ -67,7 +68,7 @@ if [ -f ~/.config/awesome/rc.lua ]; then
         echo "--> Disable HDMI screen"
       fi
       xrandr --output HDMI1 --off
-      sed -e 's/^local\ conf\ =\ 2/local conf = 1/' -i ~/.config/awesome/rc.lua
+      #sed -e 's/^local\ conf\ =\ 2/local conf = 1/' -i ~/.config/awesome/rc.lua
       laptop_x
       xbattbar
   elif [ "$MODE" == "lv" ]; then
@@ -75,11 +76,11 @@ if [ -f ~/.config/awesome/rc.lua ]; then
         echo "--> Disable VGA screen"
       fi
       xrandr --output VGA1 --off
-      sed -e 's/^local\ conf\ =\ 2/local conf = 1/' -i ~/.config/awesome/rc.lua
+      #sed -e 's/^local\ conf\ =\ 2/local conf = 1/' -i ~/.config/awesome/rc.lua
       laptop_x
       xbattbar
   elif [ "$MODE" == "l" ]; then
-      sed -e 's/^local\ conf\ =\ 2/local conf = 1/' -i ~/.config/awesome/rc.lua
+      #sed -e 's/^local\ conf\ =\ 2/local conf = 1/' -i ~/.config/awesome/rc.lua
       laptop_x
       xbattbar
   else
