@@ -18,7 +18,8 @@ set() {
   local gouv="$1"
   if [ -z "$gouv" ]
   then
-    echo 'Values are: powersave, conservative, userspace, ondemand, performance.'
+    avail=`/usr/bin/cpufreq-info |grep 'available'|uniq| cut -d : -f 2`
+    echo "Values are: $avail"
     exit 1
   fi
   /usr/bin/sudo /usr/bin/cpufreq-set -r -g $gouv
@@ -27,7 +28,7 @@ set() {
 }
 
 cinfo() {
-  info=`/usr/bin/cpufreq-info |grep 'Le régulateur'| uniq | cut -d \" -f 2`
+  info=`/usr/bin/cpufreq-info |grep 'The governor'| uniq | cut -d \" -f 2`
   /usr/bin/notify-send -u normal "Cpufreq-info: $info" "`acpi -b|head -1`"
   echo $info
 }
