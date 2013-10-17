@@ -22,17 +22,17 @@ EOF
 }
 
 laptop_x() {
-  xrandr --output eDP1 --mode 1366x768 --primary
+  xrandr --output LVDS1 --mode 1366x768 --primary
 }
 
 xrand() {
   local display="$1"
   xrandr --output $display --noprimary --mode 1680x1050
-  xrandr --output $display --auto --left-of eDP1
+  xrandr --output $display --auto --left-of LVDS1
 }
 
 xbattbar() {
-  #rel "xbattbar" "-a -c -t 2 left"
+  #rel "xbattbar" "-a -c -t 2"
   #rel "volumeicon"
   #rel "xfce4-clipman"
   [[ -x /usr/bin/nitrogen ]] && sleep 2;/usr/bin/nitrogen --restore
@@ -44,6 +44,7 @@ rel() {
   local opts="$2"
   [[ -x /usr/bin/$name ]] && /usr/bin/killall -HUP $name -q
   [[ -x /usr/bin/$name ]] && /usr/bin/$name $opts 2> /dev/null 2>&1 &
+  #[[ -x /usr/bin/$name ]] && /usr/bin/$name $opts 2> /dev/null &
 }
 
 if [ -f ~/.config/awesome/rc.lua ]; then
@@ -53,7 +54,7 @@ if [ -f ~/.config/awesome/rc.lua ]; then
     fi
     #sed -e 's/^local\ conf\ =\ 1/local conf = 2/' -i ~/.config/awesome/rc.lua
     laptop_x
-    xrand "HDMI1"
+    xrand "HDMI3"
     xbattbar
   elif [ "$MODE" == "2v" ]; then
     if [ "$VERBOSE" == "1" ]; then
@@ -67,7 +68,7 @@ if [ -f ~/.config/awesome/rc.lua ]; then
       if [ "$VERBOSE" == "1" ]; then
         echo "--> Disable HDMI screen"
       fi
-      xrandr --output HDMI1 --off
+      xrandr --output HDMI3 --off
       #sed -e 's/^local\ conf\ =\ 2/local conf = 1/' -i ~/.config/awesome/rc.lua
       laptop_x
       xbattbar
