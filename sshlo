@@ -36,7 +36,7 @@ done
 
 if [ -z "$EXCLUDE" ]
 then
-  EXCLUDE='\(pub\|know\|conf\|puppetplay\|fosdem\)'
+  EXCLUDE='\(pub\|know\|conf\|puppetplay\|fosdem\|g5kadmin\|loria\|g5kadm\|userg5k\|userg5k\)'
 fi
 if [ -z "$TIME" ]
 then
