@@ -36,7 +36,7 @@ while getopts "a:c:h" opt; do
     c) COMMAND=$OPTARG
       ;;
     h) show_help
-      exit 2
+      exit 0
       ;;
     *) echo "Bad params, please see $(basename $0) -h"
       exit 1
