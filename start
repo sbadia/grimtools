@@ -61,6 +61,26 @@ rel() {
   [[ -x /usr/bin/$name ]] && /usr/bin/$name $opts 2> /dev/null 2>&1 &
 }
 
+log() {
+  if [ "$VERBOSE" == "1" ]; then
+    local level=$1
+    local msg=$2
+    c=''
+    case $level in
+      'err')
+        c='\033[31m[E]\033[39m '
+        ;;
+      'info')
+        c='\033[32m[I]\033[39m '
+        ;;
+      *)
+        echo "Unknown log level ($level)"
+        exit 1
+    esac
+    echo -e "${c}${msg}"
+  fi
+}
+
 while getopts "hVHp:" opt; do
   case $opt in
     h)
@@ -77,6 +97,7 @@ while getopts "hVHp:" opt; do
       POS=$OPTARG
       ;;
     *)
+      log err "Bad parameter, please run $(basename $0) -h"
       exit 1
       ;;
   esac
@@ -88,13 +109,15 @@ if [ -f ~/.config/awesome/rc.lua ]; then
     # disable the HDMI or VGA screen connected
     disable=$(xrandr|awk '/^(H|V).*\sconnected/ {print $1}')
     xrandr --output $disable --off
+    log info "Screen $disable off; $LOCAL_DISPLAY only"
     xbattbar
   else
     laptop_x
     xrand $DUAL $POS
+    log info "Screen $DUAL on ($POS of $LOCAL_DISPLAY)"
     xbattbar
   fi
 else
-  echo "No awesome config..."
+  log err "No awesome config..."
   exit 1
 fi
