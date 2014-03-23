@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#set -x
+
 VERBOSE="1"
 LOCAL_DISPLAY="LVDS1"
 POS='left-of'
@@ -48,8 +50,6 @@ xrand() {
 
 xbattbar() {
   #rel "xbattbar" "-a -c -t 2"
-  #rel "volumeicon"
-  #rel "xfce4-clipman"
   [[ -x /usr/bin/nitrogen ]] && sleep 2;/usr/bin/nitrogen --restore
   exit 0
 }
@@ -59,7 +59,6 @@ rel() {
   local opts="$2"
   [[ -x /usr/bin/$name ]] && /usr/bin/killall -HUP $name -q
   [[ -x /usr/bin/$name ]] && /usr/bin/$name $opts 2> /dev/null 2>&1 &
-  #[[ -x /usr/bin/$name ]] && /usr/bin/$name $opts 2> /dev/null &
 }
 
 while getopts "hVHp:" opt; do
@@ -84,14 +83,12 @@ while getopts "hVHp:" opt; do
 done
 
 if [ -f ~/.config/awesome/rc.lua ]; then
-    #sed -e 's/^local\ conf\ =\ 1/local conf = 2/' -i ~/.config/awesome/rc.lua
   if [ "$DUAL" == "local" ]; then
     laptop_x
     # disable the HDMI or VGA screen connected
     disable=$(xrandr|awk '/^(H|V).*\sconnected/ {print $1}')
     xrandr --output $disable --off
     xbattbar
-    #sed -e 's/^local\ conf\ =\ 1/local conf = 2/' -i ~/.config/awesome/rc.lua
   else
     laptop_x
     xrand $DUAL $POS
