@@ -81,6 +81,17 @@ log() {
   fi
 }
 
+check_params() {
+  if ! [[ "$DUAL" = "VGA1" || "$DUAL" = "HDMI3" || "$DUAL" = "local" ]]; then
+    log err "Unknown dual-screen mode ($DUAL)"
+    exit 1
+  fi
+  if ! [[ "$POS" = "left-of" || "$POS" = "above" || "$POS" = "bellow" || "$POS" = "right-of" || "$POS" = "same-as" ]]; then
+    log err "Unknown screen position ($POS)"
+    exit 1
+  fi
+}
+
 while getopts "hVHp:" opt; do
   case $opt in
     h)
@@ -104,6 +115,7 @@ while getopts "hVHp:" opt; do
 done
 
 if [ -f ~/.config/awesome/rc.lua ]; then
+  check_params
   if [ "$DUAL" == "local" ]; then
     laptop_x
     # disable the HDMI or VGA screen connected
