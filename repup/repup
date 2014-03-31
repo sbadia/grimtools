@@ -11,12 +11,10 @@ require 'yaml'
 time = Time::now
 count = 0
 
-if ARGV[0] != nil
-  repos = YAML.load_file(File.join(File.dirname(__FILE__),ARGV[0]))
-elsif ARGV[0] == nil
-  repos = YAML.load_file(File.join(File.dirname(__FILE__),'repos.yml'))
+if File.exist?('repos.yml')
+  repos = YAML.load_file('repos.yml')
 else
-  repos = ["/home/#{ENV['USER']}/dev"]
+  repos = YAML.load_file(File.join(File.dirname(__FILE__),'repos.yml'))
 end
 
 puts "\e[34m[B]\e[0m Start (#{time})"
