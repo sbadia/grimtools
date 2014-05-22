@@ -59,7 +59,8 @@ cd ~/.ssh/
 pwd
 for i in ${cle[*]};
   do echo "Cle "$i;
-    /usr/bin/ssh-add $i $TTL $UTIL
+    #/usr/bin/ssh-add $i $TTL
+    keychain $i
     /usr/bin/notify-send -u normal 'Sshlo: Ssh key loader' "$i loaded"
 done
 cd ~
