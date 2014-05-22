@@ -31,7 +31,7 @@ repos.each do |dev|
   	  puts "\e[31m[S]\e[0m #{g} - " + %x{svn update}
           count += 1
         elsif File.exist?('.git')
-          puts "\e[32m[G]\e[0m #{g} - " + %x{git pull}
+          puts "\e[32m[G]\e[0m #{g} - " + %x{git pull -p}
           count += 1
         elsif File.exist?(".hg")
           puts "\e[33m[M]\e[0m #{g} - " + %x{hg pull |grep pull}
