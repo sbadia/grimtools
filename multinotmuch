@@ -52,4 +52,5 @@ elif [ ! "$ACCOUNT" = "enovance" -a ! "$ACCOUNT" = "ldn" -a ! "$ACCOUNT" = "sebi
   exit 1
 else
   NOTMUCH_CONFIG=~/crypt/mutt/notmuch-$ACCOUNT notmuch $COMMAND
+  NOTMUCH_CONFIG=~/crypt/mutt/notmuch-$ACCOUNT nottoomuch-addresses.sh --update
 fi
