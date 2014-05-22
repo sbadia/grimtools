@@ -49,7 +49,7 @@ xrand() {
 }
 
 xbattbar() {
-  #rel "xbattbar" "-a -c -t 2"
+  rel "xbattbar" "-a -c -t 2"
   [[ -x /usr/bin/nitrogen ]] && sleep 2;/usr/bin/nitrogen --restore
   exit 0
 }
