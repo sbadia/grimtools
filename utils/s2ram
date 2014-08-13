@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# Clear all clipboards
+xsel -p -c
+xsel -s -c
+xsel -b -c
+
+sync
+xtrlock & sudo pm-suspend
