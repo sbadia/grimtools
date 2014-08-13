@@ -44,4 +44,4 @@ repos.each do |dev|
     end
   end
 end
-puts "\e[34m[E]\e[0m Finish (#{time})(#{(Time::now - time)}sec)(#{count} repos)"
+puts "\e[34m[E]\e[0m Finish (#{Time::now})(#{(Time::now - time)}sec)(#{count} repos)"
