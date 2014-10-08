@@ -5,5 +5,11 @@ xsel -p -c
 xsel -s -c
 xsel -b -c
 
+# Stop all VPN
+sudo systemctl stop openvpn@enovance.service
+sudo systemctl stop openvpn@redhat.service
+sudo systemctl stop openvpn@ldn.service
+#sudo killall openconnect # Cloudwatt
+
 sync
 xtrlock & sudo pm-suspend
