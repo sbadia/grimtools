@@ -47,7 +47,7 @@ done
 if [ -z $ACCOUNT ]; then
   echo 'Account name is required !'
   exit 1
-elif [ ! "$ACCOUNT" = "enovance" -a ! "$ACCOUNT" = "ldn" -a ! "$ACCOUNT" = "sebian" ]; then
+elif [ ! "$ACCOUNT" = "enovance" -a ! "$ACCOUNT" = "ldn" -a ! "$ACCOUNT" = "sebian" -a ! "$ACCOUNT" = "redhat" ]; then
   echo "$ACCOUNT unknow !"
   exit 1
 else
