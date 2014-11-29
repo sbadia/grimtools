@@ -1,0 +1,2 @@
+#!/bin/bash
+curl -i http://git.io -F "url=$1"
