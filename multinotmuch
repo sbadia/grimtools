@@ -47,10 +47,10 @@ done
 if [ -z $ACCOUNT ]; then
   echo 'Account name is required !'
   exit 1
-elif [ ! "$ACCOUNT" = "enovance" -a ! "$ACCOUNT" = "ldn" -a ! "$ACCOUNT" = "sebian" -a ! "$ACCOUNT" = "redhat" ]; then
+elif [ ! "$ACCOUNT" = "enovance" -a ! "$ACCOUNT" = "ldn" -a ! "$ACCOUNT" = "sebian" -a ! "$ACCOUNT" = "redhat" -a ! "$ACCOUNT" = "inria" ]; then
   echo "$ACCOUNT unknow !"
   exit 1
 else
-  NOTMUCH_CONFIG=~/crypt/mutt/notmuch-$ACCOUNT notmuch $COMMAND
-  NOTMUCH_CONFIG=~/crypt/mutt/notmuch-$ACCOUNT nottoomuch-addresses.sh --update
+  NOTMUCH_CONFIG=~/crypt/mutt/${ACCOUNT}/notmuch notmuch $COMMAND
+  NOTMUCH_CONFIG=~/crypt/mutt/${ACCOUNT}/notmuch nottoomuch-addresses.sh --update
 fi
