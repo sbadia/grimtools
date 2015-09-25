@@ -17,7 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 VERBOSE="1"
-LOCAL_DISPLAY="LVDS1"
+LOCAL_DISPLAY="eDP1"
 POS='left-of'
 DUAL='local'
 
@@ -36,13 +36,13 @@ EOF
 }
 
 laptop_x() {
-  xrandr --output $LOCAL_DISPLAY --mode 1366x768 --primary
+  xrandr --output $LOCAL_DISPLAY --mode 1920x1080 --primary
 }
 
 xrand() {
   local display="$1"
   local position="$2"
-  xrandr --output $display --noprimary --mode 1680x1050
+  xrandr --output $display --noprimary --mode 1920x1080
   xrandr --output $display --auto --${position} $LOCAL_DISPLAY
 }
 
@@ -80,7 +80,7 @@ log() {
 }
 
 check_params() {
-  if ! [[ "$DUAL" = "VGA1" || "$DUAL" = "HDMI3" || "$DUAL" = "local" ]]; then
+  if ! [[ "$DUAL" = "DP2" || "$DUAL" = "HDMI1" || "$DUAL" = "local" ]]; then
     log err "Unknown dual-screen mode ($DUAL)"
     exit 1
   fi
@@ -117,15 +117,13 @@ if [ -f ~/.config/awesome/rc.lua ]; then
   if [ "$DUAL" == "local" ]; then
     laptop_x
     # disable the HDMI or VGA screen connected
-    disable=$(xrandr|awk '/^(H|V).*\sconnected/ {print $1}')
+    disable=$(xrandr|awk '/^(H|D).*\sconnected/ {print $1}')
     xrandr --output $disable --off
     log info "Screen $disable off; $LOCAL_DISPLAY only"
-    xbattbar
   else
     laptop_x
     xrand $DUAL $POS
     log info "Screen $DUAL on ($POS of $LOCAL_DISPLAY)"
-    xbattbar
   fi
 else
   log err "No awesome config..."
