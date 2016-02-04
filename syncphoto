@@ -1,0 +1,222 @@
+#!/bin/bash
+#
+#            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+#                    Version 2, December 2004
+#
+# Copyright (C) 2012 Emile Morel
+#               2012 Sebastien Badia
+#
+# Everyone is permitted to copy and distribute verbatim or modified
+# copies of this license document, and changing it is allowed as long
+# as the name is changed.
+#
+#            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+#   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+#
+#  0. You just DO WHAT THE FUCK YOU WANT TO.
+
+set -e
+exif_verbose="-v0"
+
+# Script de rangement de photo et autre suxeries
+#   - mise à jour de la date avec comme référentiel la date de l'ordinateur
+#   - classement suivant un schéma années/mois/jours/
+#   - réécriture du nom du fichier suivant un schéma heures-minutes-secondes avec possibilité de mettre un suffixe
+#   - ajout du nom du photographe dans les données exifs et dans le suffixe du nom de la photo
+#   - montage/démontage du périphérique ou ce trouve les photos avec le sync à la fin qui va bien
+# en gros un wrapper exiftool :)
+#
+# TODO: - enlever le franglais
+#       - uniformiser les noms de variables
+#       - rendre propre quoi ...
+
+prog=`basename $0`
+
+usage () {
+    echo \
+"Usage: $prog [options]
+  Options:
+    -s,   --source: set the source directory
+    -d,   --destination: set the destination directory; current directory if null
+    -m,   --mount: mount device before copy (if this option is setting, and not the source, than source is the mount device)
+    -t,   --time: ajust the exif time with the time of the machine (eg -t "2012-12-30 02:08:00")
+    -n,   --name: set the name of the photograph in the exif
+    -su,  --suffix: suffix in the file name.
+    -sn,  --suffix-name: suffix in the file name with the name of the photograph; -name should be set)
+    -dd,  --date-directory: place pictures in date directory (eg 2012/12/30/)
+    -dn,  --date-name: rewrite the name of the picture with the time find in the picure exif
+    -do,  --delete-original: delete the original pictures
+"
+}
+
+version () {
+    echo \
+"This is $prog, version 0.2
+This program comes with ABSOLUTELY NO WARRANTY."
+}
+
+opt_del="no"
+
+# Test pmount
+if [ ! -x /usr/bin/pmount ];then
+  echo -en "pmount programm not found, please install 'pmount'\n(on debian based systems just run : apt-get install pmount)\n"
+  exit 2
+fi
+
+if [ $# -eq 0 ];then
+  usage;exit 0
+fi
+
+# Process Parameters
+while [ $# -gt 0 ]; do
+    case $1 in
+    --source|-s)
+        shift
+        opt_source="$1" ;;
+    --destination|-d)
+        shift
+        opt_dest="$1" ;;
+    --mount|-m)
+        shift
+        opt_card_name="$1" ;;
+    --time|-t)
+        shift
+        opt_time="$1" ;;
+    --name|-n)
+        shift
+        opt_name="$1" ;;
+    --suffix|-su)
+        shift
+        opt_suffix="$1" ;;
+    --suffix-name|-sn)
+        opt_suffix_name="yes" ;;
+    --date-directory|-dd)
+        opt_date_dir="yes" ;;
+    --date-name|-dn)
+        opt_date_name="yes" ;;
+    -delete-original|-do)
+        opt_del="yes" ;;
+    #--no-conf|--noconf)
+        #echo "$PROGNAME: $1 is only acceptable as the first command-line option!" >&2
+        #exit 1 ;;
+    --help) usage; exit 0 ;;
+    --version) version; exit 0 ;;
+    -*) usage;shift; break ;;
+    *) echo "$prog: bug in option parser, sorry!" >&2 ; exit 1 ;;
+    esac
+    shift
+done
+
+# monte la carte mémoire
+if [ -n "$opt_card_name" ]; then
+    echo "Mount SD Card"
+    pmount $opt_card_name
+fi
+
+if [ -n "$opt_card_name" ] && [ ! -n "$opt_source" ]; then
+    opt_source="/media/$opt_card_name"
+fi
+
+# dans le répertoire courant si pas de destination
+if [ ! -n "$opt_dest" ]; then
+  opt_dest="."
+fi
+
+#
+if [ -n "$opt_suffix_name" ] && [ -n "$opt_suffix" ]; then
+  echo "--suffix-name and --suffix incompatible; take --suffix: $opt_suffix"
+  opt_suffix="_$opt_suffix"
+elif [ ! -n "$opt_suffix_name" ] && [ -n "$opt_suffix" ]; then
+  opt_suffix="_$opt_suffix"
+elif [ -n "$opt_suffix_name" ] && [ -n "$opt_name" ]; then
+  opt_suffix="_$opt_name"
+else
+  opt_suffix=""
+fi
+
+if [ -n "$opt_name" ]; then
+  opt_name="-Artist=$opt_name"
+else
+  opt_name=""
+fi
+
+if [ -n "$opt_time" ]; then
+  time_in_sec=$(date +%s -d "$opt_time")
+  pc_time_in_sec=$(date +%s)
+  diff_time_in_sec=$(echo "$time_in_sec" - "$pc_time_in_sec" | bc)
+
+  diff_minus=$(echo $diff_time_in_sec | grep -c "^-")
+  if [ "$diff_minus" == "1" ]; then
+    diff_time_in_sec=$(echo $diff_time_in_sec | sed -e 's/^-//')
+    diff_minus="+"
+  else
+    diff_minus="-"
+  fi
+
+  if [ "$diff_time_in_sec" != "0" ]; then
+
+    # nombres de jours
+    jours_mod=$(($diff_time_in_sec % 86400))
+    if [ "$jours_mod" != "$diff_time_in_sec" ]; then
+      jours_sec=$(echo "$diff_time_in_sec" - "$jours_mod" | bc)
+      jours=$(echo "$jours_sec" / 86400 | bc)
+    else
+      jours=0
+    fi
+
+    # nombres d'heures
+    heures_mod=$(($jours_mod % 3600))
+    if [ "$heures_mod" != "$jours_mod" ]; then
+      heures_sec=$(echo "$jours_mod" - "$heures_mod" | bc)
+      heures=$(echo "$heures_sec" / 3600 | bc)
+    else
+      heures=0
+    fi
+
+    # nombres de minutes
+    minutes_mod=$(($heures_mod % 60))
+    if [ "$minutes_mod" != "$heures_mod" ]; then
+      minutes_sec=$(echo "$heures_mod" - "$minutes_mod" | bc)
+      minutes=$(echo "$minutes_sec" / 60 | bc)
+    else
+      minutes=0
+    fi
+
+#    echo $jours $heures $minutes $minutes_mod
+  fi
+fi
+
+if [ -n "$opt_time" ]; then
+  time_arg="-AllDates$diff_minus='0:0:$jours $heures:$minutes:$minutes_mod'"
+fi
+
+if [ -n "$opt_date_name" ]; then
+  dest_file_arg="-o . '-FileName<DateTimeOriginal' -d $opt_dest/%Y-%m-%d-%H-%M-%S$opt_suffix.%%e"
+fi
+
+if [ -n "$opt_date_dir" ]; then
+  if [ -n "$opt_date_name" ]; then
+    dest_file_arg="-o . '-FileName<DateTimeOriginal' -d $opt_dest/%Y/%m/%d/%H-%M-%S$opt_suffix.%%e"
+  else
+    dest_file_arg="-o . '-FileName<DateTimeOriginal' -d $opt_dest/%Y/%m/%d/%%f$opt_suffix.%%e"
+  fi
+fi
+
+if [ "$opt_del" == "yes" ]; then
+  opt_del="-overwrite_original"
+else
+  opt_del=""
+fi
+
+# hop le tour est joué ! (trop facile)
+echo "exec: exiftool" $opt_name $time_arg $dest_file_arg $opt_source $exif_verbose $opt_del
+eval "exiftool $opt_name $time_arg $dest_file_arg $opt_source $exif_verbose $opt_del"
+
+echo "Sync... "
+sync
+
+# démonte la carte mémoire
+if [ -n "$opt_card_name" ]; then
+    echo "Umount SD Card"
+    pumount $opt_card_name
+fi
