@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # pub -- publish a file or (tarball of a) directory
 #
@@ -90,7 +90,14 @@ set -eu
 
 DELIM='__'
 HASHCMD=md5sum
-CONFFILE=$HOME/.pubrc
+set +u
+if [ -z "$CONF_FILE" ]; then
+  CONFFILE=$HOME/.pubrc
+else
+  CONFFILE=$CONF_FILE
+fi
+set -u
+
 if [ ! -r $CONFFILE ]; then
   echo "E: $CONFFILE cannot be read." >&2
   exit 1
@@ -265,7 +272,7 @@ procfile()
   local file; file="${1:?No filename given.}"
   local origfile; origfile="$file"
   local target; target="${2:-$file}"
-  
+
   case "$bzip2$gzip$zip7$zip" in
     1000) compress_file bz2 || :;;
     0100) compress_file gz || :;;
@@ -279,16 +286,16 @@ procfile()
 
   local url; url="${PUBBASE}$(escape_url "$rtarget")"
   if [ $delete -eq 1 ]; then
-    delete ${TARGETHOST}:"'${TARGETDIR}/$rtarget'" || :
+    delete ${TARGETHOST}:"${TARGETDIR}/$rtarget" || :
 
     [ $verify -eq 1 ] && verify_file_deleted
   else
     local size; size="$(wc -c "$file")"
     local hash; hash="$($HASHCMD "$file")"
     echo -n "$url"
-    [ $urlonly = 1 ] || echo -n " size:${size%% *} hash:${hash%% *}"
+    [ $urlonly = 1 ] || echo -n " size:${size%% *} hash($HASHCMD):${hash%% *}"
     echo
-    copy "$file" ${TARGETHOST}:"'${TARGETDIR}/$rtarget'"
+    copy "$file" ${TARGETHOST}:"${TARGETDIR}/$rtarget"
   fi
 }
 
